@@ -15,6 +15,7 @@ import os
 import configparser
 import math
 import struct
+from glob import glob
 from .adapterMesh import *
 from mathutils import Vector
 from mathutils import Matrix
@@ -225,6 +226,26 @@ def export_ini(obj, file_path):
 	export_object_and_children_ini(config, obj, file_path)
 	with open(file_path+'.ini', 'w') as configfile:
 		config.write(configfile)
+
+def cleanup_unused_renderable_export_files(entity_root):
+	"""Remove renderable export artifacts left on disk for the provided entity."""
+	if entity_root is None:
+		return
+
+	entity_name = getattr(entity_root, "name", None)
+	if not entity_name:
+		return
+
+	export_root = os.path.abspath(bpy.path.abspath("//"))
+	entity_prefix = os.path.join(export_root, entity_name)
+
+	for path in glob(f"{entity_prefix}.*.bin"):
+		if not os.path.isfile(path):
+			continue
+		try:
+			os.remove(path)
+		except OSError as err:
+			print(f"Failed to remove unused export file '{path}': {err}")
 
 def prepare_objects_for_export(obj):
 	if getattr(obj, "G4D_IS_JOINT", False):
@@ -696,6 +717,8 @@ class Archean_ExportObject(bpy.types.Operator):
 			self.report({'ERROR'}, "Selected object is not part of an entity")
 			return {'CANCELLED'}
 		
+		cleanup_unused_renderable_export_files(entityObj)
+		
 		# Prepare for export
 		bpy.ops.object.select_all(action='DESELECT')
 		prepare_objects_for_export(entityObj)
@@ -962,17 +985,21 @@ def export_object_and_children_ini(config, obj, file_path):
 			add_pos_and_rot_to_config(config, "RENDERABLE " + obj.name, obj)
 			if getattr(obj, "G4D_RENDERABLE_EXPORT_SHARP_EDGES", False):
 				assert obj.data is not None, "No mesh data for object '" + obj.name + "'"
-				assert len(obj.data.vertices) <= 65535, "Too many vertices to export sharp edges for object '" + obj.name + "'"
-				with open(file_path + '.' + obj.name + '.vertices.bin', 'wb') as f:
-					for v in obj.data.vertices:
-						f.write(struct.pack('f', v.co.x))
-						f.write(struct.pack('f', v.co.y))
-						f.write(struct.pack('f', v.co.z))
-				with open(file_path + '.' + obj.name + '.sharp_edges.bin', 'wb') as f:
-					for edge in obj.data.edges:
-						if edge.use_edge_sharp:
-							f.write(struct.pack('H', edge.vertices[0]))
-							f.write(struct.pack('H', edge.vertices[1]))
+				sharp_edges = []
+				for edge in obj.data.edges:
+					if edge.use_edge_sharp:
+						sharp_edges.append((edge.vertices[0], edge.vertices[1]))
+				if sharp_edges:
+					assert len(obj.data.vertices) <= 65535, "Too many vertices to export sharp edges for object '" + obj.name + "'"
+					with open(file_path + '.' + obj.name + '.vertices.bin', 'wb') as f:
+						for v in obj.data.vertices:
+							f.write(struct.pack('f', v.co.x))
+							f.write(struct.pack('f', v.co.y))
+							f.write(struct.pack('f', v.co.z))
+					with open(file_path + '.' + obj.name + '.sharp_edges.bin', 'wb') as f:
+						for v0, v1 in sharp_edges:
+							f.write(struct.pack('H', v0))
+							f.write(struct.pack('H', v1))
 		
 		# JOINT
 		if getattr(obj, "G4D_IS_JOINT", False):
@@ -1105,6 +1132,8 @@ class Archean_Panel(bpy.types.Panel):
 								if edge.use_edge_sharp:
 									nbSharpEdges += 1
 							box.row().label(text="Nb sharp edges indices: " + str(nbSharpEdges))
+							if nbSharpEdges == 0:
+								box.row().label(text="No sharp edges detected; export will skip them.", icon='INFO')
 			
 			# JOINT
 			box = layout.box()
