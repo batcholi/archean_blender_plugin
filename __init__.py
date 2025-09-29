@@ -308,8 +308,6 @@ def get_parent_obj(obj):
 		return obj.parent
 	if getattr(obj.parent, "G4D_IS_ADAPTER", False):
 		return obj.parent
-	if getattr(obj.parent, "G4D_IS_LIGHT_BOX", False):
-		return obj.parent
 	if getattr(obj.parent, "G4D_IS_TARGET", False):
 		return obj.parent
 	if getattr(obj.parent, "G4D_IS_CAMERA", False):
@@ -1042,15 +1040,6 @@ def export_object_and_children_ini(config, obj, file_path):
 			add_property_to_config(config, "ADAPTER " + obj.name, "type", adapterType)
 			add_pos_and_rot_to_config(config, "ADAPTER " + obj.name, obj)
 	
-		# LIGHT_BOX
-		if getattr(obj, "G4D_IS_LIGHT_BOX", False):
-			add_parent_to_config(config, "LIGHT_BOX " + obj.name, parent)
-			add_pos_and_rot_to_config(config, "LIGHT_BOX " + obj.name, obj)
-			bb = get_bounding_box(obj)
-			assert bb is not None, "Invalid LIGHT_BOX configuration for object '" + obj.name + "'"
-			add_property_to_config(config, "LIGHT_BOX " + obj.name, "box_min", bb['min'])
-			add_property_to_config(config, "LIGHT_BOX " + obj.name, "box_max", bb['max'])
-	
 	# Do this recursively for children
 	for child in obj.children:
 		export_object_and_children_ini(config, child, file_path)
@@ -1204,19 +1193,6 @@ class Archean_Panel(bpy.types.Panel):
 				if getattr(obj, "G4D_ADAPTER_TYPE", "") != "":
 					box.row().operator("object.archean_create_mesh").mesh_type = getattr(obj, "G4D_ADAPTER_TYPE", "") + "_adapter"
 				
-			# LIGHT_BOX
-			box = layout.box()
-			box.row().prop(obj, "G4D_IS_LIGHT_BOX")
-			if getattr(obj, "G4D_IS_LIGHT_BOX", False):
-				bb = get_bounding_box(obj)
-				if bb is None:
-					box.alert = True
-					box.row().label(text="ERROR: this object has no mesh", icon='ERROR')
-				else:
-					add_pos_and_rot_to_panel(box, obj)
-					# box.row().label(text="Effective dimensions: " + f"{obj.dimensions.x:.2f}, {obj.dimensions.y:.2f}, {obj.dimensions.z:.2f}")
-					box.row().label(text="Effective bound min: " + f"{bb['min'].x:.2f}, {bb['min'].y:.2f}, {bb['min'].z:.2f}")
-					box.row().label(text="Effective bound max: " + f"{bb['max'].x:.2f}, {bb['max'].y:.2f}, {bb['max'].z:.2f}")
 		layout.operator("object.archean_create_materials")
 
 
@@ -1343,13 +1319,6 @@ def register():
 		default='data'
 	)
 
-	# LIGHT_BOX
-	bpy.types.Object.G4D_IS_LIGHT_BOX = bpy.props.BoolProperty(
-		name="Is Light Box",
-		description="Flags this object as a Light Box in Archean (will make a bounding box with the objet's dimensions and use it for in-game Global illumination computation). Its -Z axis should point towards the actual emissive surface but it's bounding box must not touch it. Make it longer in the +Z axis and as large as the emissive surface in the X and Y axes.",
-		default=False
-	)
-	
 def unregister():
 	bpy.utils.unregister_class(Archean_ExportObject)
 	bpy.utils.unregister_class(Archean_FixObjects)
