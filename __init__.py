@@ -254,7 +254,43 @@ def prepare_objects_for_export(obj):
 	for child in obj.children:
 		prepare_objects_for_export(child)
 
+def entity_has_smooth_shading(entity_obj):
+	visited_objects = set()
+	visited_meshes = set()
+
+	def check_object(obj):
+		if obj is None:
+			return False
+		obj_ptr = obj.as_pointer()
+		if obj_ptr in visited_objects:
+			return False
+		visited_objects.add(obj_ptr)
+
+		if getattr(obj, "G4D_IS_RENDERABLE", False):
+			if obj.type == 'MESH' and obj.data is not None:
+				mesh = obj.data
+				mesh_ptr = mesh.as_pointer()
+				if mesh_ptr not in visited_meshes:
+					visited_meshes.add(mesh_ptr)
+					if getattr(mesh, "use_auto_smooth", False) or getattr(mesh, "has_custom_normals", False):
+						return True
+					for poly in mesh.polygons:
+						if poly.use_smooth:
+							return True
+			if obj.instance_type == 'COLLECTION' and obj.instance_collection is not None:
+				for inst_obj in obj.instance_collection.objects:
+					if check_object(inst_obj):
+						return True
+
+		for child in obj.children:
+			if check_object(child):
+				return True
+		return False
+	return check_object(entity_obj)
+
+
 def export_gltf(entityObj, file_path):
+	export_normals = entity_has_smooth_shading(entityObj)
 	options = {
 		'check_existing': True,
 		'export_format': 'GLTF_SEPARATE',
@@ -264,7 +300,7 @@ def export_gltf(entityObj, file_path):
 		'export_texture_dir': '',
 		'export_keep_originals': False,
 		'export_texcoords': getattr(entityObj, "G4D_ENTITY_GLTF_EXPORT_TEXCOORDS", False),
-		'export_normals': True,
+		'export_normals': export_normals,
 		'export_draco_mesh_compression_enable': False,
 		'export_draco_mesh_compression_level': 6,
 		'export_draco_position_quantization': 14,
