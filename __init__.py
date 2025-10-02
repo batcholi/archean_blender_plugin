@@ -15,10 +15,25 @@ import os
 import configparser
 import math
 import struct
+import time
+from collections import deque
 from glob import glob
 from .adapterMesh import *
 from mathutils import Vector
 from mathutils import Matrix
+
+
+_DEV_MODE_CLICK_TIMES = deque(maxlen=6)
+_DEV_MODE_CLICK_WINDOW_SECONDS = 3.0
+_DEV_MODE_REQUIRED_CLICKS = 6
+
+
+def is_developer_mode_enabled(scene=None):
+	if scene is None:
+		scene = bpy.context.scene
+	if scene is None:
+		return False
+	return bool(getattr(scene, "G4D_DEVELOPER_MODE", False))
 
 def recrop_thumbnail_image(file_path, maxWidth=128, maxHeight=128, forceExactDimensions=True):
 	image = bpy.data.images.load(file_path)
@@ -545,6 +560,32 @@ class Archean_AddNewEntity(bpy.types.Operator):
 
 def add_archean_entity_button(self, context):
 	self.layout.operator("object.add_archean_entity", text="Archean Entity", icon='MESH_CUBE')
+
+
+class Archean_EnableDeveloperMode(bpy.types.Operator):
+	bl_idname = "object.archean_enable_developer_mode"
+	bl_label = ""
+	bl_description = ""
+	bl_options = {'INTERNAL'}
+
+	def execute(self, context):
+		scene = context.scene
+		if scene is None:
+			self.report({'WARNING'}, "No active scene available.")
+			return {'CANCELLED'}
+
+		now = time.perf_counter()
+		_DEV_MODE_CLICK_TIMES.append(now)
+		while _DEV_MODE_CLICK_TIMES and now - _DEV_MODE_CLICK_TIMES[0] > _DEV_MODE_CLICK_WINDOW_SECONDS:
+			_DEV_MODE_CLICK_TIMES.popleft()
+
+		if len(_DEV_MODE_CLICK_TIMES) >= _DEV_MODE_REQUIRED_CLICKS:
+			scene.G4D_DEVELOPER_MODE = True
+			_DEV_MODE_CLICK_TIMES.clear()
+			self.report({'INFO'}, "Archean developer mode enabled.")
+
+		return {'FINISHED'}
+
 
 class Archean_WriteMeshAsPython(bpy.types.Operator):
 	bl_idname = "object.write_mesh_as_python"
@@ -1122,9 +1163,13 @@ class Archean_Panel(bpy.types.Panel):
 		obj = context.object
 		if obj is not None:
 			layout = self.layout
-			layout.operator("object.archean_export")
+			dev_mode_enabled = is_developer_mode_enabled(context.scene)
+			row = layout.row(align=True)
+			row.operator("object.archean_export")
+			lock_icon = 'UNLOCKED' if dev_mode_enabled else 'LOCKED'
+			row.operator("object.archean_enable_developer_mode", text="", icon=lock_icon)
 			
-			if obj.data is not None and obj.type == 'MESH':
+			if dev_mode_enabled and obj.data is not None and obj.type == 'MESH':
 				layout.operator("object.write_mesh_as_python")
 			
 			row = layout.row()
@@ -1223,14 +1268,15 @@ class Archean_Panel(bpy.types.Panel):
 				add_pos_and_rot_to_panel(box, obj)
 				
 			# CAMERA
-			box = layout.box()
-			box.row().prop(obj, "G4D_IS_CAMERA")
-			if getattr(obj, "G4D_IS_CAMERA", False):
-				add_pos_and_rot_to_panel(box, obj)
-				if type(obj.data) == bpy.types.Camera:
-					box.row().label(text="Effective znear: " + f"{obj.data.clip_start:.2f}")
-				else:
-					box.row().prop(obj, "G4D_CAMERA_ZNEAR")
+			if dev_mode_enabled:
+				box = layout.box()
+				box.row().prop(obj, "G4D_IS_CAMERA")
+				if getattr(obj, "G4D_IS_CAMERA", False):
+					add_pos_and_rot_to_panel(box, obj)
+					if type(obj.data) == bpy.types.Camera:
+						box.row().label(text="Effective znear: " + f"{obj.data.clip_start:.2f}")
+					else:
+						box.row().prop(obj, "G4D_CAMERA_ZNEAR")
 				
 			# COLLIDER
 			box = layout.box()
@@ -1275,6 +1321,7 @@ def register():
 	bpy.utils.register_class(Archean_WriteMeshAsPython)
 	bpy.utils.register_class(Archean_CreateMesh)
 	bpy.utils.register_class(Archean_AddNewEntity)
+	bpy.utils.register_class(Archean_EnableDeveloperMode)
 	bpy.types.VIEW3D_MT_add.append(add_archean_entity_button)
 	
 	# ENTITY
@@ -1387,6 +1434,14 @@ def register():
 		default='data'
 	)
 
+	# DEV MODE
+	bpy.types.Scene.G4D_DEVELOPER_MODE = bpy.props.BoolProperty(
+		name="Archean Developer Mode",
+		description="Unlocks developer oriented controls in the Archean panel",
+		default=False,
+		options={'SKIP_SAVE'}
+	)
+
 def unregister():
 	bpy.utils.unregister_class(Archean_ExportObject)
 	bpy.utils.unregister_class(Archean_FixObjects)
@@ -1397,7 +1452,11 @@ def unregister():
 	bpy.utils.unregister_class(Archean_WriteMeshAsPython)
 	bpy.utils.unregister_class(Archean_CreateMesh)
 	bpy.utils.unregister_class(Archean_AddNewEntity)
+	bpy.utils.unregister_class(Archean_EnableDeveloperMode)
 	bpy.types.VIEW3D_MT_add.remove(add_archean_entity_button)
+
+	if hasattr(bpy.types.Scene, "G4D_DEVELOPER_MODE"):
+		del bpy.types.Scene.G4D_DEVELOPER_MODE
 
 if __name__ == "__main__":
 	register()
