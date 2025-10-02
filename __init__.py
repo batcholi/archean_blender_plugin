@@ -746,6 +746,9 @@ class Archean_ExportObject(bpy.types.Operator):
 		if obj is None:
 			self.report({'ERROR'}, "No object selected!")
 			return {'CANCELLED'}
+		if context.mode != 'OBJECT':
+			self.report({'ERROR'}, "You must be in Object Mode to export an entity.")
+			return {'CANCELLED'}
 		
 		# Get parent entity (or self)
 		entityObj = get_entity_obj(obj)
