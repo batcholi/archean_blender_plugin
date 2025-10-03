@@ -555,7 +555,7 @@ class Archean_AddNewEntity(bpy.types.Operator):
 	def execute(self, context):
 		bpy.ops.object.empty_add(type='PLAIN_AXES')
 		entity = context.active_object
-		entity.name = "New Entity"
+		entity.name = "NewEntity"
 		entity["G4D_IS_ENTITY"] = True
 
 		bpy.ops.mesh.primitive_cube_add()
