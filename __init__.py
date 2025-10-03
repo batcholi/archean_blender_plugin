@@ -16,6 +16,7 @@ import configparser
 import math
 import struct
 import time
+import re
 from collections import deque
 from glob import glob
 from .adapterMesh import *
@@ -34,6 +35,12 @@ def is_developer_mode_enabled(scene=None):
 	if scene is None:
 		return False
 	return bool(getattr(scene, "G4D_DEVELOPER_MODE", False))
+
+
+def is_valid_entity_root_name(name):
+	if not name:
+		return False
+	return bool(re.fullmatch(r"[A-Za-z][A-Za-z0-9]*", name))
 
 def recrop_thumbnail_image(file_path, maxWidth=128, maxHeight=128, forceExactDimensions=True):
 	image = bpy.data.images.load(file_path)
@@ -1180,6 +1187,12 @@ class Archean_Panel(bpy.types.Panel):
 				box.alert = True
 				box.row().label(text="Some objects are scaled, they should be applied", icon='ERROR')
 				box.row().operator("object.archean_fix")
+
+			entity_name = getattr(obj, "name", "")
+			if not is_valid_entity_root_name(entity_name):
+				warning_box = layout.box()
+				warning_box.alert = True
+				warning_box.row().label(text="Entity name must be alphanumeric.", icon='ERROR')
 
 			# ENTITY
 			box = layout.box()
