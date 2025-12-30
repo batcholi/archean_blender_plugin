@@ -243,6 +243,20 @@ def render_and_save_thumbnail(obj, show_outlines = False):
 
 	return thumbnail_path
 
+def get_thumbnail_path(entity_obj):
+	if entity_obj is None:
+		return None
+	export_root = os.path.abspath(bpy.path.abspath("//"))
+	return os.path.join(export_root, f"{entity_obj.name}.png")
+
+def ensure_thumbnail_exists(entity_obj):
+	thumbnail_path = get_thumbnail_path(entity_obj)
+	if thumbnail_path is None:
+		return None
+	if not os.path.isfile(thumbnail_path):
+		render_and_save_thumbnail(entity_obj)
+	return thumbnail_path
+
 def export_ini(obj, file_path):
 	config = configparser.ConfigParser()
 	export_object_and_children_ini(config, obj, file_path)
@@ -810,6 +824,9 @@ class Archean_ExportObject(bpy.types.Operator):
 		bpy.ops.object.select_all(action='DESELECT')
 		prepare_objects_for_export(entityObj)
 		bpy.context.view_layer.objects.active = entityObj
+		
+		# Ensure we always have a thumbnail on export.
+		ensure_thumbnail_exists(entityObj)
 		
 		# Export now
 		export_gltf(entityObj, bpy.path.abspath("//") + "/" + entityObj.name)
