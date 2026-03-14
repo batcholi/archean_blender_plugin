@@ -1347,7 +1347,7 @@ def register():
 	)
 	bpy.types.Object.G4D_ENTITY_MASS = bpy.props.FloatProperty(name="Mass (kg)",description="Base mass of this entity (when empty) in kilograms",default=10.0)
 	bpy.types.Object.G4D_ENTITY_AIRTIGHT = bpy.props.BoolProperty(name="Airtight",description="Whether this entity's bounding box is considered air tight and has no leaks",default=False)
-	bpy.types.Object.G4D_ENTITY_SYMMETRIC = bpy.props.BoolProperty(name="Symmetric",description="Whether this entity supports symmetric placement",default=True)
+	bpy.types.Object.G4D_ENTITY_SYMMETRIC = bpy.props.BoolProperty(name="Allow Symmetry",description="Whether this entity supports symmetric placement",default=True)
 	bpy.types.Object.G4D_ENTITY_BASE_PLANE_IS_MINUS_Y = bpy.props.BoolProperty(name="Base Plane is Minus Y",description="Use Minus Y as the base plane instead of Minus Z. This relates to how the item is placed by default on a build. While in game, pressing Shift will reverse that behaviour and the mousewheel will rotate it on that axis.", default=False)
 	# bpy.types.Object.G4D_ENTITY_GLTF_EXPORT_COLORS = bpy.props.BoolProperty(name="Export Vertex Colors",description="Export vertex colors for all renderables in this entity, otherwise just the material color will be assumed in Archean. At this moment this setting can only be applied globally per entity due to a limitation in Blender's GLTF exporter plugin.", default=False)
 	bpy.types.Object.G4D_ENTITY_GLTF_EXPORT_TEXCOORDS = bpy.props.BoolProperty(name="Export Vertex UVs",description="Export vertex uvs for all renderables in this entity. At this moment this setting can only be applied globally per entity due to a limitation in Blender's GLTF exporter plugin.", default=False)
