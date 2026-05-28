@@ -1077,7 +1077,8 @@ def export_object_and_children_ini(config, obj, file_path):
 	if getattr(obj, "G4D_IS_ENTITY", False):
 		add_section_to_config(config, "ENTITY " + obj.name)
 		add_property_to_config(config, "ENTITY " + obj.name, "mass", [getattr(obj, "G4D_ENTITY_MASS", 0.0)])
-		add_property_to_config(config, "ENTITY " + obj.name, "damage_capacity_deformation", [getattr(obj, "G4D_ENTITY_DAMAGE_CAPACITY", 10000.0)])
+		add_property_to_config(config, "ENTITY " + obj.name, "damage_capacity_deformation", [getattr(obj, "G4D_ENTITY_DAMAGE_CAPACITY_DEFORMATION", 10000.0)])
+		add_property_to_config(config, "ENTITY " + obj.name, "damage_capacity_heat", [getattr(obj, "G4D_ENTITY_DAMAGE_CAPACITY_HEAT", 10000.0)])
 		add_property_to_config(config, "ENTITY " + obj.name, "airtight", getattr(obj, "G4D_ENTITY_AIRTIGHT", False))
 		add_property_to_config(config, "ENTITY " + obj.name, "symmetric", getattr(obj, "G4D_ENTITY_SYMMETRIC", True))
 		add_property_to_config(config, "ENTITY " + obj.name, "base_planes", "-Y -Z" if getattr(obj, "G4D_ENTITY_BASE_PLANE_IS_MINUS_Y", False) else "-Z -Y")
@@ -1218,7 +1219,10 @@ class Archean_Panel(bpy.types.Panel):
 			box.row().prop(obj, "G4D_IS_ENTITY")
 			if getattr(obj, "G4D_IS_ENTITY", False):
 				box.row().prop(obj, "G4D_ENTITY_MASS")
-				box.row().prop(obj, "G4D_ENTITY_DAMAGE_CAPACITY")
+				damage_box = box.box()
+				damage_box.label(text="Damage capacity (J)")
+				damage_box.row().prop(obj, "G4D_ENTITY_DAMAGE_CAPACITY_DEFORMATION")
+				damage_box.row().prop(obj, "G4D_ENTITY_DAMAGE_CAPACITY_HEAT")
 				box.row().prop(obj, "G4D_ENTITY_AIRTIGHT")
 				box.row().prop(obj, "G4D_ENTITY_SYMMETRIC")
 				box.row().prop(obj, "G4D_ENTITY_BASE_PLANE_IS_MINUS_Y")
@@ -1365,7 +1369,8 @@ def register():
 		default=False
 	)
 	bpy.types.Object.G4D_ENTITY_MASS = bpy.props.FloatProperty(name="Mass (kg)",description="Base mass of this entity (when empty) in kilograms",default=10.0)
-	bpy.types.Object.G4D_ENTITY_DAMAGE_CAPACITY = bpy.props.FloatProperty(name="Damage capacity (J)",description="How much impact/heat energy (joules) this entity can absorb before being destroyed",default=10000.0,min=0.0)
+	bpy.types.Object.G4D_ENTITY_DAMAGE_CAPACITY_DEFORMATION = bpy.props.FloatProperty(name="Deformation",description="How much impact/deformation energy (joules) this entity can absorb before being destroyed",default=10000.0,min=0.0)
+	bpy.types.Object.G4D_ENTITY_DAMAGE_CAPACITY_HEAT = bpy.props.FloatProperty(name="Heat",description="How much heat energy (joules) this entity can absorb before being destroyed",default=10000.0,min=0.0)
 	bpy.types.Object.G4D_ENTITY_AIRTIGHT = bpy.props.BoolProperty(name="Airtight",description="Whether this entity's bounding box is considered air tight and has no leaks",default=False)
 	bpy.types.Object.G4D_ENTITY_SYMMETRIC = bpy.props.BoolProperty(name="Allow Symmetry",description="Whether this entity supports symmetric placement",default=True)
 	bpy.types.Object.G4D_ENTITY_BASE_PLANE_IS_MINUS_Y = bpy.props.BoolProperty(name="Base Plane is Minus Y",description="Use Minus Y as the base plane instead of Minus Z. This relates to how the item is placed by default on a build. While in game, pressing Shift will reverse that behaviour and the mousewheel will rotate it on that axis.", default=False)
