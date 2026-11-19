@@ -1054,6 +1054,7 @@ class Archean_CreateMesh(bpy.types.Operator):
 		switcher = {
 			'data_adapter': create_data_adapter_mesh,
 			'lowvoltage_adapter': create_lowvoltage_adapter_mesh,
+			'explosive_adapter': create_lowvoltage_adapter_mesh,
 			'highvoltage_adapter': create_highvoltage_adapter_mesh,
 			'fluid_adapter': create_fluid_adapter_mesh,
 			'item_adapter': create_item_adapter_mesh,
@@ -1471,6 +1472,7 @@ def register():
 			('highvoltage', "highvoltage", "HighVoltage adapter"),
 			('fluid', "fluid", "Fluid adapter"),
 			('item', "item", "Item adapter"),
+			('explosive', "explosive", "Explosive adapter (detonating cord, laid with the Low Voltage Cable)"), # last: a .blend stores the index
 		],
 		default='data'
 	)
